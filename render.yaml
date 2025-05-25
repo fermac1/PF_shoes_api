@@ -1,38 +1,42 @@
-# render.yaml
-databases:
-  - name: laravel_memcache_db
-    plan: free
-    databaseName: laravel_memcache_db
-    user: laravel_memcache_db
-
 services:
   - type: web
-    plan: free
-    name: laravel_memcache
-    runtime: docker
+    name: laravel-app
+    runtime: php
+    buildCommand: |
+      composer install --no-dev --optimize-autoloader
+      php artisan config:cache
+      php artisan route:cache
+      php artisan view:cache
+    startCommand: php artisan serve --host 0.0.0.0 --port 10000
     envVars:
-      # Database
-      - key: DATABASE_URL
-        fromDatabase:
-          name: laravel_memcache_db
-          property: connectionString
-      - key: DB_CONNECTION
-        value: pgsql
-      # Laravel
-      - key: APP_KEY
-        sync: false
       - key: APP_ENV
         value: production
-      - key: APP_DEBUG
-        value: false
-      - key: LOG_CHANNEL
-        value: stderr
-      # Image-specific vars (richarvey/nginx-php-fpm)
-      - key: WEBROOT
-        value: /var/www/html/public
-      - key: RUN_SCRIPTS
-        value: 1
-      - key: REAL_IP_HEADER
-        value: 1
-      - key: SKIP_COMPOSER
-        value: 1
+      - key: APP_KEY
+        generateValue: true
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_HOST
+        fromService:
+          name: pg-database
+          type: pserv
+          property: host
+      - key: DB_PORT
+        value: 5432
+      - key: DB_DATABASE
+        value: your_db_name
+      - key: DB_USERNAME
+        value: your_db_user
+      - key: DB_PASSWORD
+        value: your_db_password
+
+  - type: pserv
+    name: pg-database
+    runtime: postgres
+    plan: free
+    envVars:
+      - key: POSTGRES_DB
+        value: your_db_name
+      - key: POSTGRES_USER
+        value: your_db_user
+      - key: POSTGRES_PASSWORD
+        value: your_db_password
